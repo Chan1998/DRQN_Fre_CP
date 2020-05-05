@@ -1,0 +1,23 @@
+2-3
+
+TRAIN_STEPS = 20000
+TIME_SLOTS = 100                           # number of time-slots to run simulation
+decay_epsilon_STEPS = 500
+NUM_CHANNELS = 2                               # Total number of channels
+NUM_USERS = 3                                  # Total number of users
+# ATTEMPT_PROB = 1                               # attempt probability of ALOHA based  models
+
+memory_size = 1000                      #size of experience replay deque
+batch_size = 6                          # Num of batches to train at each time_slot
+pretrain_length = batch_size            #this is done to fill the deque up to batch size before training
+hidden_size = 128                       #Number of hidden neurons
+learning_rate = 0.0001                  #learning rate
+
+step_size=1+2+2                         #length of history sequence for each datapoint  in batch
+state_size = 2 *(NUM_CHANNELS + 1)      #length of input (2 * k + 2)   :k = NUM_CHANNELS
+action_size = NUM_CHANNELS+1            #length of output  (k+1)
+#alpha=0                                 #co-operative fairness constant
+#beta = 1                                #Annealing constant for Monte - Carlo
+interval = 10                           # debug interval
+UPDATE_PERIOD = 50
+np.random.seed(40)

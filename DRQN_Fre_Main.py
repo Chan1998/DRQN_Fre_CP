@@ -5,28 +5,26 @@ from collections import  deque
 import  matplotlib.pyplot as plt
 import tensorflow as tf
 
-TIME_SLOTS = 50000                           # number of time-slots to run simulation
+TRAIN_STEPS = 50000
+TIME_SLOTS = 100                           # number of time-slots to run simulation
 decay_epsilon_STEPS = 500
-NUM_CHANNELS = 3                               # Total number of channels
-NUM_USERS = 4                                  # Total number of users
+NUM_CHANNELS = 2                               # Total number of channels
+NUM_USERS = 3                                  # Total number of users
 # ATTEMPT_PROB = 1                               # attempt probability of ALOHA based  models
 
-memory_size = 10000                      #size of experience replay deque
+memory_size = 1000                      #size of experience replay deque
 batch_size = 6                          # Num of batches to train at each time_slot
 pretrain_length = batch_size            #this is done to fill the deque up to batch size before training
 hidden_size = 128                       #Number of hidden neurons
 learning_rate = 0.0001                  #learning rate
-# explore_start = .02                     #initial exploration rate
-# explore_stop = 0.01                     #final exploration rate
-# decay_rate = 0.0001                     #rate of exponential decay of exploration
-# gamma = 0.9                             #discount  factor
-noise = 0.1
-step_size=1+2+2                         #length of history sequence for each datapoint  in batch
+
+step_size=1+2+2                       #length of history sequence for each datapoint  in batch
 state_size = 2 *(NUM_CHANNELS + 1)      #length of input (2 * k + 2)   :k = NUM_CHANNELS
 action_size = NUM_CHANNELS+1            #length of output  (k+1)
-alpha=0                                 #co-operative fairness constant
-beta = 1                                #Annealing constant for Monte - Carlo
-interval = 100                           # debug interval
+#alpha=0                                 #co-operative fairness constant
+#beta = 1                                #Annealing constant for Monte - Carlo
+interval = 1000                           # debug interval
+UPDATE_PERIOD = 50
 np.random.seed(40)
 
 def reset_env():
@@ -67,12 +65,17 @@ if __name__ == "__main__":
 
         loss_list = []
         reward_all_list = []
+        reward_all_list_r = []
+        reward_all_list_t = []
 
         ##########################################################################
         ####                      main simulation loop                    ########
         update_iter = 0
         reward_all = 0
-        for time_step in range(TIME_SLOTS):
+        reward_all_r = 0
+        reward_all_t = 0
+
+        for time_step in range(TRAIN_STEPS):
             # initializing action vector
             action = np.zeros([NUM_USERS], dtype=np.int32)
             # converting input history into numpy array
@@ -101,24 +104,6 @@ if __name__ == "__main__":
             reward_all_list.append(reward_all)
             # calculating cumulative reward
             #cum_r.append(cum_r[-1] + sum_r)
-
-            # If NUM_CHANNELS = 2 , total possible reward = 2 , therefore collision = (2 - sum_r) or (NUM_CHANNELS - sum_r)
-            #collision = NUM_CHANNELS - sum_r
-
-            # calculating cumulative collision
-            #cum_collision.append(cum_collision[-1] + collision)
-
-            #############################
-            #  for co-operative policy we will give reward-sum to each user who have contributed
-            #  to play co-operatively and rest 0
-            # for i in range(len(reward)):
-            #     if reward[i] > 0:
-            #         reward[i] = sum_r
-            #############################
-
-
-            # total_rewards.append(sum_r)
-            # print (reward)
 
 
             # add new experiences into the memory buffer as (state, action , reward , next_state) for training
@@ -160,8 +145,6 @@ if __name__ == "__main__":
             batch_actions = actions[:, -1]
             batch_next_states = np.reshape(next_states, [-1, next_states.shape[2], next_states.shape[3]])
 
-
-
             summery, loss = DRQN.train(state=batch_states,  # 进行训练
                                       reward=batch_rewards,
                                       action=batch_actions,
@@ -173,57 +156,88 @@ if __name__ == "__main__":
             if time_step % decay_epsilon_STEPS == 0:
                 DRQN.decay_epsilon()  # 随训练进行减小探索力度
 
-            # #  creating target vector (possible best action)
-            # target_Qs = sess.run(mainQN.output, feed_dict={mainQN.inputs_: next_states})
-            #
-            # #  Q_target =  reward + gamma * Q_next
-            # targets = rewards[:, -1] + gamma * np.max(target_Qs, axis=1)
-            #
-            # #  calculating loss and train using Adam  optimizer
-            # loss, _ = sess.run([mainQN.loss, mainQN.opt],
-            #                    feed_dict={mainQN.inputs_: states,
-            #                               mainQN.targetQs_: targets,
-            #                               mainQN.actions_: actions[:, -1]})
+            if update_iter % UPDATE_PERIOD == 0:
+                DRQN.update_prmt()  # 更新目标Q网络
+                print("更新网络")
 
 
-            # print(loss)
-            #   Training block ends
-            ########################################################################################
+        #   Training block ends
+        ########################################################################################
 
-            # if  time_step %50000 == 4999:
-            #     plt.figure(1)
-            #     plt.subplot(311)
-            #     #plt.plot(np.arange(1000),total_rewards,"r+")
-            #     #plt.xlabel('Time Slots')
-            #     #plt.ylabel('total rewards')
-            #     #plt.title('total rewards given per time_step')
-            #     #plt.show()
-            #     plt.plot(np.arange(5001),cum_collision,"r-")
-            #     plt.xlabel('Time Slot')
-            #     plt.ylabel('cumulative collision')
-            #     #plt.show()
-            #     plt.subplot(312)
-            #     plt.plot(np.arange(5001),cum_r,"r-")
-            #     plt.xlabel('Time Slot')
-            #     plt.ylabel('Cumulative reward of all users')
-            #     #plt.title('Cumulative reward of all users')
-            #
-            #     plt.subplot(321)
-            #     plt.plot(np.arange(len(loss_list)), loss_list, "b-")
-            #     plt.xlabel('Time Slot')
-            #     plt.ylabel('Loss')
-            #
-            #
-            #     plt.show()
-            #
-            #     total_rewards = []
-            #     cum_r = [0]
-            #     cum_collision = [0]
-            #     saver.save(sess,'checkpoints/dqn_multi-user.ckpt')
-            #     print (time_step,loss , sum(reward) , Qs)
 
-            # print ("*************************************************")
-        print(reward_all,TIME_SLOTS*3)
+        #     saver.save(sess,'checkpoints/dqn_multi-user.ckpt')
+        #     print (time_step,loss , sum(reward) , Qs)
+
+        print ("*************************************************训练结束")
+
+        #结果测试
+        for time_step in range(TIME_SLOTS):
+            # initializing action vector
+            action = np.zeros([NUM_USERS], dtype=np.int32)
+            # converting input history into numpy array
+            state_vector = np.array(history_input)
+            for each_user in range(NUM_USERS):
+                action[each_user] = DRQN.chose_action_test(
+                    state_vector[:, each_user].reshape(1, step_size, state_size))
+
+            # taking action as predicted from the q values and receiving the observation from thr envionment
+            obs = env.step(action)  # obs is a list of tuple with [(ACK,REW) for each user ,(CHANNEL_RESIDUAL_CAPACITY_VECTOR)]
+
+            #if time_step % interval == 0:
+            print(action)
+            #print (obs)
+
+            # Generate next state from action and observation
+            next_state = env.state_generator(action, obs)
+            # print (next_state)
+
+            # reward for all users given by environment
+            reward = [i[1] for i in obs[:NUM_USERS]]
+
+            # calculating sum of rewards
+            sum_r = np.sum(reward)
+            reward_all_t += sum_r
+            reward_all_list_t.append(reward_all_t)
+
+
+            state = next_state
+            history_input.append(state)
+        print("*************************************************测试结束")
+
+        #随机测试
+        for time_step in range(TIME_SLOTS):
+            # initializing action vector
+            action = env.sample()
+            # converting input history into numpy array
+            #state_vector = np.array(history_input)
+
+            # taking action as predicted from the q values and receiving the observation from thr envionment
+            obs = env.step(action)  # obs is a list of tuple with [(ACK,REW) for each user ,(CHANNEL_RESIDUAL_CAPACITY_VECTOR)]
+
+            #if time_step % interval == 0:
+            print(action)
+            #print (obs)
+
+            # Generate next state from action and observation
+            next_state = env.state_generator(action, obs)
+            # print (next_state)
+
+            # reward for all users given by environment
+            reward = [i[1] for i in obs[:NUM_USERS]]
+
+            # calculating sum of rewards
+            sum_r = np.sum(reward)
+            reward_all_r += sum_r
+            reward_all_list_r.append(reward_all_r)
+
+
+            state = next_state
+
+
+
+
+        print(reward_all_t,TIME_SLOTS*3)
+        print(reward_all_r, TIME_SLOTS * 3)
         plt.figure(1)
         plt.subplot(121)
         plt.plot(np.arange(len(loss_list)),loss_list,"r-")
@@ -231,9 +245,11 @@ if __name__ == "__main__":
         plt.ylabel('total loss')
         plt.title('total loss given per time_step')
         plt.subplot(122)
-        plt.plot(np.arange(len(reward_all_list)), reward_all_list, "b-")
+        plt.plot(np.arange(len(reward_all_list_t)), reward_all_list_t, "b-")
+        plt.plot(np.arange(len(reward_all_list_r)), reward_all_list_r, "r:")
         plt.xlabel('Time Slots')
         plt.ylabel('total rewards')
+        plt.legend(['DRQN', 'Random'])
         plt.title('total rewards given per time_step')
         plt.show()
         saver = tf.train.Saver()
