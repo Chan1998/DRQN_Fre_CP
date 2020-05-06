@@ -23,7 +23,7 @@ state_size = 2 *(NUM_CHANNELS + 1)      #length of input (2 * k + 2)   :k = NUM_
 action_size = NUM_CHANNELS+1            #length of output  (k+1)
 #alpha=0                                 #co-operative fairness constant
 #beta = 1                                #Annealing constant for Monte - Carlo
-interval = 1000                           # debug interval
+interval = 1                           # debug interval
 UPDATE_PERIOD = 50
 np.random.seed(40)
 
@@ -100,6 +100,14 @@ if __name__ == "__main__":
 
             # calculating sum of rewards
             sum_r = np.sum(reward)
+            #############################
+            #  for co-operative policy we will give reward-sum to each user who have contributed
+            #  to play co-operatively and rest 0
+            for i in range(len(reward)):
+                if reward[i] > 0:
+                    reward[i] = sum_r
+            #############################
+
             reward_all += sum_r
             reward_all_list.append(reward_all)
             # calculating cumulative reward
@@ -158,7 +166,7 @@ if __name__ == "__main__":
 
             if update_iter % UPDATE_PERIOD == 0:
                 DRQN.update_prmt()  # 更新目标Q网络
-                print("更新网络")
+                #print("更新网络")
 
 
         #   Training block ends

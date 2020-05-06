@@ -14,6 +14,8 @@ class DeepQNetwork():
         self.hidden_size = hidden_size
         self.learning_rate = learning_rate
         #self.name = "q_network"
+        self.alpha = 0  # co-operative fairness constant
+        self.beta = 1  # Annealing constant for Monte - Carlo
         self.network()
         self.sess = sess
         self.sess.run(tf.global_variables_initializer())
@@ -122,11 +124,25 @@ class DeepQNetwork():
         #q = self.sess.run(self.out_q, feed_dict={self.inputs: current_state})
         # print(q)
 
+        #   Monte-carlo sampling from Q-values  (Boltzmann distribution)
+        ##################################################################################
+        prob1 = (1 - self.alpha) * np.exp(self.beta * q)
+
+        # Normalizing probabilities of each action  with temperature (beta)
+        prob = prob1 / np.sum(np.exp(self.beta * q)) + self.alpha / (self.action_size)
+        # print prob
+
+        #   This equation is as given in the paper :
+        #   Deep Multi-User Reinforcement Learning for
+        #   Distributed Dynamic Spectrum Access :
+        #   @Oshri Naparstek and Kobi Cohen (equation 12)
+        ########################################################################################
+
         # e-greedy
         if np.random.random() < self.epsilon:
             action_chosen = np.random.randint(0, self.action_size)
         else:
-            action_chosen = np.argmax(q)
+            action_chosen = np.argmax(prob, axis=1)
         # print(np.argmax(q))
         return action_chosen
 
@@ -134,7 +150,12 @@ class DeepQNetwork():
         #current_state = current_state[np.newaxis, :]  # *** array dim: (xx,)  --> (1 , xx) ***
         q = self.sess.run(self.q_value, feed_dict={self.inputs_q: current_state})
         # print(q)
-        action_chosen = np.argmax(q)
+        prob1 = (1 - self.alpha) * np.exp(self.beta * q)
+
+        # Normalizing probabilities of each action  with temperature (beta)
+        prob = prob1 / np.sum(np.exp(self.beta * q)) + self.alpha / (self.action_size)
+        # print prob
+        action_chosen = np.argmax(prob, axis=1)
         # print(np.argmax(q), q)
         return action_chosen
 
