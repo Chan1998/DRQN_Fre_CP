@@ -74,36 +74,7 @@ class DeepQNetwork():
         with tf.variable_scope("train"):
             self.train_op = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss)
 
-    # def network(self):
-    #     with tf.variable_scope(self.name, reuse=False):
-    #         self.inputs = tf.placeholder(tf.float32, [None, self.step_size, self.state_size], name='inputs')
-    #         self.actions = tf.placeholder(tf.int32, [None], name='actions')
-    #
-    #         self.lstm = tf.contrib.rnn.BasicLSTMCell(self.hidden_size)
-    #         self.lstm_out, self.state = tf.nn.dynamic_rnn(self.lstm, self.inputs, dtype=tf.float32)
-    #         self.reduced_out = self.lstm_out[:, -1, :]
-    #         self.reduced_out = tf.reshape(self.reduced_out, shape=[-1, self.hidden_size])
-    #
-    #         self.w2 = tf.Variable(tf.random_uniform([self.hidden_size, self.hidden_size]))
-    #         self.b2 = tf.Variable(tf.constant(0.1, shape=[self.hidden_size]))
-    #         self.h2 = tf.matmul(self.reduced_out, self.w2) + self.b2
-    #         self.h2 = tf.nn.relu(self.h2)
-    #         self.h2 = tf.contrib.layers.layer_norm(self.h2)
-    #
-    #         self.out_v = tf.contrib.layers.fully_connected(self.h2, num_outputs=1, activation_fn=None)
-    #         self.out_a = tf.contrib.layers.fully_connected(self.h2, num_outputs=self.action_size, activation_fn=None)
-    #         self.out_q = self.out_v + (self.out_a - tf.reduce_mean(self.out_a, axis=1, keepdims=True))
-    #
-    #
-    #         self.target = tf.placeholder(tf.float32, [None], name='target')
-    #
-    #         with tf.device('/cpu:0'):
-    #             one_hot_actions = tf.one_hot(self.actions_, self.action_size)
-    #         self.Q = tf.reduce_sum(tf.multiply(self.out_q, one_hot_actions), axis=1)
-    #         self.loss = tf.reduce_mean(tf.square(self.target - self.Q))
-    #         tf.summary.scalar('loss', tf.reduce_mean(self.loss))
-    #
-    #         self.train_op = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss)
+
 
     def train(self, state, reward, action, state_next):
         q_target = self.sess.run(self.q_target, feed_dict={self.inputs_target: state_next})
@@ -120,29 +91,15 @@ class DeepQNetwork():
     def chose_action_train(self, current_state):
         #current_state = current_state[np.newaxis, :]  # *** array dim: (xx,)  --> (1 , xx) ***
         # print(np.shape(current_state))
-        q = self.sess.run(self.q_value, feed_dict={self.inputs_q: current_state})
+
         #q = self.sess.run(self.out_q, feed_dict={self.inputs: current_state})
         # print(q)
-
-        #   Monte-carlo sampling from Q-values  (Boltzmann distribution)
-        ##################################################################################
-        prob1 = (1 - self.alpha) * np.exp(self.beta * q)
-
-        # Normalizing probabilities of each action  with temperature (beta)
-        prob = prob1 / np.sum(np.exp(self.beta * q)) + self.alpha / (self.action_size)
-        # print prob
-
-        #   This equation is as given in the paper :
-        #   Deep Multi-User Reinforcement Learning for
-        #   Distributed Dynamic Spectrum Access :
-        #   @Oshri Naparstek and Kobi Cohen (equation 12)
-        ########################################################################################
-
         # e-greedy
         if np.random.random() < self.epsilon:
             action_chosen = np.random.randint(0, self.action_size)
         else:
-            action_chosen = np.argmax(prob, axis=1)
+            q = self.sess.run(self.q_value, feed_dict={self.inputs_q: current_state})
+            action_chosen = np.argmax(q, axis=1)
         # print(np.argmax(q))
         return action_chosen
 
@@ -150,12 +107,12 @@ class DeepQNetwork():
         #current_state = current_state[np.newaxis, :]  # *** array dim: (xx,)  --> (1 , xx) ***
         q = self.sess.run(self.q_value, feed_dict={self.inputs_q: current_state})
         # print(q)
-        prob1 = (1 - self.alpha) * np.exp(self.beta * q)
-
-        # Normalizing probabilities of each action  with temperature (beta)
-        prob = prob1 / np.sum(np.exp(self.beta * q)) + self.alpha / (self.action_size)
+        # prob1 = (1 - self.alpha) * np.exp(self.beta * q)
+        #
+        # # Normalizing probabilities of each action  with temperature (beta)
+        # prob = prob1 / np.sum(np.exp(self.beta * q)) + self.alpha / (self.action_size)
         # print prob
-        action_chosen = np.argmax(prob, axis=1)
+        action_chosen = np.argmax(q, axis=1)
         # print(np.argmax(q), q)
         return action_chosen
 

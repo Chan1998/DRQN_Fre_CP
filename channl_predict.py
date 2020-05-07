@@ -194,12 +194,12 @@ def get_next_states(batch):
 
 
 
-# data_in = pd.read_csv("./dataset/real_data_trace.csv")
-# data_in = data_in.drop("index",axis=1)
+data_in = pd.read_csv("./dataset/real_data_trace.csv")
+data_in = data_in.drop("index",axis=1)
 #设定随机种子
 np.random.seed(40)
 
-data_in = pd.read_csv("./dataset/perfectly_correlated.csv")
+# data_in = pd.read_csv("./dataset/perfectly_correlated.csv")
 
 #设定超参数
 
@@ -215,7 +215,7 @@ learning_rate = 1e-2            # Learning rate
 #gamma = 0.9                     # Discount Factor
 hidden_size = 128                # Hidden Size (Put 200 for perfectly correlated)
 pretrain_length = 16            # Pretrain Set to be known
-n_episodes = 2                 # Number of episodes (equivalent to epochs)
+n_episodes = 3                 # Number of episodes (equivalent to epochs)
 
 decay_epsilon_STEPS = 100       #降低探索概率次数
 UPDATE_PERIOD = 20  # update target network parameters目标网络随训练步数更新周期
@@ -326,6 +326,8 @@ if __name__ == "__main__":
                 #     plt.show()
 
         print("-------------测试 -----------")
+        r_t = []
+        a_t = []
         total_rewards = 0
         for time in range(len(data_in) - pretrain_length):
             # for time in range(TIME_SLOTS):
@@ -334,10 +336,13 @@ if __name__ == "__main__":
             # print(np.shape(state_in))
 
             action = DQN.chose_action_test(state_in.reshape([-1, step_size, state_size]))  # 通过网络选择对应动作
-            # print(action)
+
             obs = data_in["channel" + str(int(action))][time + pretrain_length]  # Observe
             next_state = state_gen(state_in, action, obs)  # Go to next state
             reward = obs
+            r_t.append(reward)
+            a_t.append(int(action))
+            #print(action,obs)
             total_rewards += reward  # Total Reward
             reward_normalised_t.append(total_rewards)
             #exp_memory.add((state_in, action, reward, next_state))  # Add in exp memory
@@ -348,6 +353,8 @@ if __name__ == "__main__":
 
         print("-------------随机对比 -----------")
         total_rewards = 0
+        r_r = []
+        a_r = []
         for time in range(len(data_in) - pretrain_length):
             # for time in range(TIME_SLOTS):
             prob_sample = np.random.rand()
@@ -359,6 +366,8 @@ if __name__ == "__main__":
             obs = data_in["channel" + str(int(action))][time + pretrain_length]  # Observe
             next_state = state_gen(state_in, action, obs)  # Go to next state
             reward = obs
+            r_r.append(reward)
+            a_r.append(action)
             total_rewards += reward  # Total Reward
             reward_normalised_r.append(total_rewards)
             #exp_memory.add((state_in, action, reward, next_state))  # Add in exp memory
@@ -380,6 +389,26 @@ if __name__ == "__main__":
 
         # print(reward_all_t, TIME_SLOTS * 3)
         # print(reward_all_r, TIME_SLOTS * 3)
+        # array1 = np.array(r_r)
+        # r_r_data = pd.DataFrame(array1)
+        # r_r_data.to_csv("./dataset/random_channl_reward.csv")
+        #
+        # array3 = np.array(a_r)
+        # a_r_data = pd.DataFrame(array3)
+        # a_r_data.to_csv("./dataset/random_channl_action.csv")
+        #
+        # array2 = np.array(r_t)
+        # r_t_data = pd.DataFrame(array2)
+        # r_t_data.to_csv("./dataset/DRQN_channl_reward.csv")
+        #
+        # array4 = np.array(a_t)
+        # a_t_data = pd.DataFrame(array4)
+        # a_t_data.to_csv("./dataset/DRQN_channl_action.csv")
+        #
+        # array5 = np.array(loss_list)
+        # loss_data = pd.DataFrame(array5)
+        # loss_data.to_csv("./dataset/DRQN_channl_choose_loss.csv")
+
         plt.figure(1)
         plt.subplot(121)
         plt.plot(np.arange(len(loss_list)), loss_list, "r-")
