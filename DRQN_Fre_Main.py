@@ -6,9 +6,9 @@ import  matplotlib.pyplot as plt
 import tensorflow as tf
 import pandas as pd
 
-TRAIN_STEPS = 70000
+TRAIN_STEPS = 30000
 TIME_SLOTS = 100                           # number of time-slots to run simulation
-decay_epsilon_STEPS = 700
+decay_epsilon_STEPS = 500
 NUM_CHANNELS = 2                               # Total number of channels
 NUM_USERS = 3                                  # Total number of users
 # ATTEMPT_PROB = 1                               # attempt probability of ALOHA based  models
@@ -24,8 +24,8 @@ state_size = 2 *(NUM_CHANNELS + 1)      #length of input (2 * k + 2)   :k = NUM_
 action_size = NUM_CHANNELS+1            #length of output  (k+1)
 #alpha=0                                 #co-operative fairness constant
 #beta = 1                                #Annealing constant for Monte - Carlo
-interval = 1000                           # debug interval
-UPDATE_PERIOD = 100
+interval = 1                           # debug interval
+UPDATE_PERIOD = 2
 #np.random.seed(40)
 
 def reset_env():
@@ -104,9 +104,9 @@ if __name__ == "__main__":
             #############################
             #  for co-operative policy we will give reward-sum to each user who have contributed
             #  to play co-operatively and rest 0
-            # for i in range(len(reward)):
-            #     if reward[i] > 0:
-            #         reward[i] = sum_r
+            for i in range(len(reward)):
+                if reward[i] > 0:
+                    reward[i] = sum_r
             #############################
 
             reward_all += sum_r
@@ -253,23 +253,23 @@ if __name__ == "__main__":
 
         array1 = np.array(action_data_t)
         a_t_data = pd.DataFrame(array1,columns=['User1','User2','User3'])
-        a_t_data.to_csv("./dataset/muti_user/DRQN_action.csv")
+        a_t_data.to_csv("./dataset/muti_user2/DRQN_action.csv")
 
         array2 = np.array(reward_data_t)
         r_t_data = pd.DataFrame(array2,columns=['User1','User2','User3'])
-        r_t_data.to_csv("./dataset/muti_user/DRQN_reward.csv")
+        r_t_data.to_csv("./dataset/muti_user2/DRQN_reward.csv")
 
         array3 = np.array(action_data_r)
         a_r_data = pd.DataFrame(array3,columns=['User1','User2','User3'])
-        a_r_data.to_csv("./dataset/muti_user/Random_action.csv")
+        a_r_data.to_csv("./dataset/muti_user2/Random_action.csv")
 
         array4 = np.array(reward_data_r)
         r_r_data = pd.DataFrame(array4,columns=['User1','User2','User3'])
-        r_r_data.to_csv("./dataset/muti_user/Random_reward.csv")
+        r_r_data.to_csv("./dataset/muti_user2/Random_reward.csv")
 
         array5 = np.array(loss_list)
         loss_data = pd.DataFrame(array5)
-        loss_data.to_csv("./dataset/muti_user/loss_data.csv")
+        loss_data.to_csv("./dataset/muti_user2/loss_data.csv")
 
         print(reward_all_t,TIME_SLOTS*3)
         print(reward_all_r, TIME_SLOTS * 3)
